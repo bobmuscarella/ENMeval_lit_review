@@ -102,14 +102,19 @@ unique(d_analysis$'How was data partitioned?')
 
 # Keeping it simple for now...  Just reporting on whether they used one of the 'spatial' partitioning methods or not
 
-table(grepl('spatial', tolower(d_analysis$'How was data partitioned?')))
-50/(50+91)
+table(grepl('not', tolower(d_analysis$'How was data partitioned?')))
+112/(112+29)
 
-table(grepl('random', tolower(d_analysis$'How was data partitioned?')))
-50/(50+91)
+d_analysis2 <- d_analysis[!grepl('not', tolower(d_analysis$'How was data partitioned?')),]
 
-table(grepl('jack', tolower(d_analysis$'How was data partitioned?')))
-16/(125+16)
+table(grepl('spatial', tolower(d_analysis2$'How was data partitioned?')))
+48/(48+64)
+
+table(grepl('random', tolower(d_analysis2$'How was data partitioned?')))
+49/(49+63)
+
+table(grepl('jack', tolower(d_analysis2$'How was data partitioned?')))
+16/(96+16)
 
 
 # 35% of studies used one of the spatial partitioning methods
