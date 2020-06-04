@@ -2,32 +2,53 @@
 library(googlesheets4)
 library(rcrossref)
 
-# Read the file of papers reviewed
-urldois <- 'https://docs.google.com/spreadsheets/d/1t6u9OU8qVcJGk1SGwpgrc3gZQncsxCX7FEXD2hvj9Cc/edit?usp=sharing'
-doi <- read_sheet(urldois)
+### Read the file of papers reviewed
+# urldois <- 'https://docs.google.com/spreadsheets/d/1t6u9OU8qVcJGk1SGwpgrc3gZQncsxCX7FEXD2hvj9Cc/edit?usp=sharing'
+# doi <- read_sheet(urldois)
 
-# Get citation list
-texttmp <- cr_cn(doi$DOI[!is.na(doi$DOI)], format='text')
-jsoncites <- cr_cn(doi$DOI[!is.na(doi$DOI)], format='citeproc-json')
-years <- unlist(lapply(jsoncites, function(x) x$created$`date-parts`[1]))
+### Get citation list
+# texttmp <- cr_cn(doi$DOI[!is.na(doi$DOI)], format='text')
+# jsoncites <- cr_cn(doi$DOI[!is.na(doi$DOI)], format='citeproc-json')
+# years <- unlist(lapply(jsoncites, function(x) x$created$`date-parts`[1]))
 
 ### Years of citations
-table(years)
+# table(years)
 # Reviewed papers ranged from 2016-2019
 
 ### Write a file with citations of all papers reviewed
-write.csv(do.call(rbind, texttmp), file='/Users/au529793/Desktop/ENMeval_citations.csv', 
-          row.names = F, fileEncoding='UTF-8')
+# write.csv(do.call(rbind, texttmp), file='/Users/au529793/Desktop/ENMeval_citations.csv', 
+#           row.names = F, fileEncoding='UTF-8')
+
+tmp <- read.csv('/Users/au529793/Projects/GIT/ENMeval_lit_review/ENMeval_citations.csv')
 
 # Read the lit review summary
 url <- "https://docs.google.com/spreadsheets/d/1dlde-4E6kVMTKhFfU5N8d1YVkC1MV6W2s3OcKqZ_n64/edit?usp=sharing"
 
 d <- as.data.frame(read_sheet(url))
 
-names(d)
+tmp$doi <- unlist(lapply(strsplit(as.character(tmp$V1), 'doi:'), function(x)x[2]))
+x <- unlist(lapply(strsplit(as.character(tmp$V1), ")"), function(x)x[1]))
+tmp$year <- substring(x, nchar(x)-3, nchar(x))
+
+d$year <- tmp$year[match(d$`Article DOI (copy from ENMeval citations spreadsheet)`, tmp$doi)]
+
+d$year[d$`Article DOI (copy from ENMeval citations spreadsheet)`=="10.1111/2041-210X.13107"] <- 2018
+d$year[d$`Article DOI (copy from ENMeval citations spreadsheet)`=="10.1029/2018GB005973"] <- 2019
+d$year[d$`Article DOI (copy from ENMeval citations spreadsheet)`=="10.5061/dryad.c699f"] <- 2018
+d$year[d$`Article DOI (copy from ENMeval citations spreadsheet)`=="10.1111/2041-210X.13142"] <- 2019
+d$year[d$`Article DOI (copy from ENMeval citations spreadsheet)`=="10.1111/2041-210X.13142"] <- 2017
+d$year[d$`Article DOI (copy from ENMeval citations spreadsheet)`=="10.1071/ZO18036"] <- 2018
+d$year[d$`Article DOI (copy from ENMeval citations spreadsheet)`=="10.1071/MF17100"] <- 2018
+d$year[d$`Article DOI (copy from ENMeval citations spreadsheet)`=="10.1017/S0959270916000241"] <- 2017
+d$year[d$`Article DOI (copy from ENMeval citations spreadsheet)`=="10.3996/082017-JFWM-067"] <- 2018
+d$year[d$`Article DOI (copy from ENMeval citations spreadsheet)`=="10.1017/S0959270916000241"] <- 2018
+d$year[d$`Article DOI (copy from ENMeval citations spreadsheet)`=="10.1111/2041-210X.12945"] <- 2018
+
 
 ##################################################################
 ### Was ENMeval used for analysis or just cited for concepts?
+table(d$`Was ENMeval used for analysis or just cited for concepts?`)
+
 d_analysis <- d[d$`Was ENMeval used for analysis or just cited for concepts?`=='Used for analysis',]
 
 table(d_analysis$`How was ENMeval used?`)
@@ -78,11 +99,34 @@ b <- barplot(100 * (colSums(d_analysis[,c('aicc','auc_test','OR','AUCdiff','TSS'
                  nrow(d_analysis)), ylim=c(0,100))
 axis(1, labels=F, at=b)
 
-d_analysis[rowSums(d_analysis[,c('aicc','auc_test','OR','AUCdiff','TSS','Boyce')])==2,14:19]
+barplot(colSums(d_analysis[,c('aicc','auc_test','OR','AUCdiff','TSS','Boyce')]))
 
-mean(d_analysis$aicc)
+d_analysis_list <- split(d_analysis, d_analysis$year)
 
+dat <- do.call(rbind, 
+               lapply(d_analysis_list, function(x) 
+                 colSums(x[,c('aicc','auc_test','OR','AUCdiff','TSS','Boyce')])))
+
+cols <- rev(RColorBrewer::brewer.pal(5, 'Set1'))
+barplot(dat, col=cols,
+        ylim=c(0,110), ylab='Number of Studies')
+legend('topright', bty='n', legend=2015:2019, 
+       pt.bg=cols, pch=22, pt.cex=2)
+
+
+
+round(100 * apply(d_analysis[,c('aicc','auc_test','OR','AUCdiff','TSS','Boyce')], 2, mean), 0)
 # 70% of studies used AICc as the criterion for selecting optimal settings
+# 21% of studies used AUCtest as the criterion for selecting optimal settings
+# 11% of studies used OR as the criterion for selecting optimal settings
+
+# How many studies use > 1 eval stat?
+round(100*mean(rowSums(d_analysis[,c('aicc','auc_test','OR','AUCdiff','TSS','Boyce')])>1),0)
+
+# How many studies use > 2 eval stat?
+round(100*mean(rowSums(d_analysis[,c('aicc','auc_test','OR','AUCdiff','TSS','Boyce')])>2),0)
+
+
 
 ##################################################################
 ### Were "optimal settings" reported?
@@ -121,6 +165,13 @@ table(grepl('jack', tolower(d_analysis2$'How was data partitioned?')))
 # 35% of studies used random partitioning
 # 11% of studies used the jackknife partitioning
 
+table(grepl('block', tolower(d_analysis2$'How was data partitioned?')))
+31/(31+81)
+# 28% used block 
+
+table(grepl('checker', tolower(d_analysis2$'How was data partitioned?')))
+18/(94+18)
+# 16% used checkerboard
 
 ##################################################################
 ### Which evaluation metric(s) were reported?
@@ -136,6 +187,11 @@ tss <- 1*grepl("tss", tolower(d_analysis$`Which evaluation metric(s) were report
 boyce <- 1*grepl("boyce", tolower(d_analysis$`Which evaluation metric(s) were reported?`))
 
 df <- data.frame(aicc, auctest, auctrain, aucdiff, or, tss, boyce)
+
+## 80 % of studies that used ENMeval for analysis reported at least one evaluation statistic (113/141) 
+sum(rowSums(df)>0)
+mean(rowSums(df)>0)
+
 
 sort(round(apply(df, 2, mean)*100), decreasing = T)
 
