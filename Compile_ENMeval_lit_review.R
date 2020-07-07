@@ -10,6 +10,9 @@ library(rcrossref)
 # texttmp <- cr_cn(doi$DOI[!is.na(doi$DOI)], format='text')
 # jsoncites <- cr_cn(doi$DOI[!is.na(doi$DOI)], format='citeproc-json')
 # years <- unlist(lapply(jsoncites, function(x) x$created$`date-parts`[1]))
+# months <- unlist(lapply(jsoncites, function(x) paste(x$created$`date-parts`[1,], collapse='-')))
+# sort(months)
+
 
 ### Years of citations
 # table(years)
@@ -66,7 +69,7 @@ d_analysis$evaluation <- 1 * (grepl("evaluation", d_analysis$`How was ENMeval us
                                 grepl("Comparing the", d_analysis$`How was ENMeval used?`))
                                 
 table(d_analysis$evaluation)
-mean(d_analysis$evaluation==1)
+100 * mean(d_analysis$evaluation)
 
 # 93% of the studies used ENMeval for evaluating / selecting models
 
@@ -110,8 +113,8 @@ dat <- do.call(rbind,
 cols <- rev(RColorBrewer::brewer.pal(5, 'Set1'))
 barplot(dat, col=cols,
         ylim=c(0,110), ylab='Number of Studies')
-legend('topright', bty='n', legend=2015:2019, 
-       pt.bg=cols, pch=22, pt.cex=2)
+legend('topright', bty='n', legend=2019:2015, 
+       pt.bg=rev(cols), pch=22, pt.cex=2)
 
 
 
